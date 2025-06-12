@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaborative Scrum Poker</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .card { transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; }
+        .card:hover { transform: translateY(-5px); }
+        .card.selected { transform: translateY(-5px) scale(1.05); border-color: #3b82f6; }
+        .participant-card-wrapper { transition: transform 0.5s; transform-style: preserve-3d; }
+        .participant-card-wrapper.is-flipped { transform: rotateY(180deg); }
+        .card-face { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; border-radius: 0.75rem; }
+        .card-front { background-color: #9ca3af; color: white; }
+        .dark .card-front { background-color: #374151; }
+        .card-back { background-color: #60a5fa; color: white; transform: rotateY(180deg); }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+
+    <!-- App Container -->
+    <div class="w-full min-h-screen p-4 md:p-8">
+
+        <!-- Lobby View: Create/Join Room -->
+        <div id="lobby-view" class="w-full max-w-md mx-auto mt-20 text-center">
+            <h1 class="text-4xl font-bold mb-2">Scrum Poker</h1>
+            <p class="text-gray-500 dark:text-gray-400 mb-8">Real-time Story Pointing</p>
+            <div id="lobby-controls" class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg">
+                <button id="create-room-btn" class="w-full mb-4 px-6 py-3 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700 transition-colors">Create New Room</button>
+                <div class="relative flex py-5 items-center"><div class="flex-grow border-t border-gray-300 dark:border-gray-600"></div><span class="flex-shrink mx-4 text-gray-400">Or</span><div class="flex-grow border-t border-gray-300 dark:border-gray-600"></div></div>
+                <div class="flex gap-2">
+                    <input type="text" id="join-room-input" placeholder="Enter Room ID" class="flex-grow p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button id="join-room-btn" class="px-6 py-3 bg-green-600 text-white font-bold rounded-lg shadow-md hover:bg-green-700 transition-colors">Join</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Name Entry Modal -->
+        <div id="name-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+             <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-sm text-center">
+                <h2 class="text-2xl font-bold mb-4">Enter Your Name</h2>
+                <input type="text" id="name-input" placeholder="Your Name" class="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                <button id="submit-name-btn" class="w-full px-6 py-3 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700">Enter Room</button>
+            </div>
+        </div>
+
+        <!-- Game View -->
+        <div id="game-view" class="hidden">
+            <header class="flex flex-wrap justify-between items-center mb-6">
+                <div>
+                    <h1 class="text-3xl font-bold">Planning Poker</h1>
+                    <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Room ID: <strong id="room-id-display" class="select-all cursor-pointer" title="Click to copy"></strong> <i id="copy-icon" class="fa-regular fa-copy ml-1 cursor-pointer"></i></div>
+                </div>
+                 <div id="host-controls" class="hidden items-center gap-2 mt-4 md:mt-0">
+                    <button id="reveal-btn" class="px-5 py-2 bg-purple-600 text-white font-bold rounded-lg shadow-md hover:bg-purple-700"><i class="fa-solid fa-eye mr-2"></i>Reveal</button>
+                    <button id="reset-btn" class="px-5 py-2 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700"><i class="fa-solid fa-rotate-right mr-2"></i>New Round</button>
+                    <button id="close-room-btn" class="px-5 py-2 bg-red-600 text-white font-bold rounded-lg shadow-md hover:bg-red-700"><i class="fa-solid fa-times-circle mr-2"></i>Close Room</button>
+                </div>
+            </header>
+            <main id="participants-area" class="mb-32 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md min-h-[16rem] flex items-center justify-center">
+                <div id="participants-container" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-6 w-full"></div>
+            </main>
+            <footer class="fixed bottom-0 left-0 right-0 bg-gray-200 dark:bg-gray-800 p-4 shadow-inner">
+                 <div class="max-w-6xl mx-auto text-center">
+                    <h2 class="text-xl font-bold mb-4">Place Your Vote</h2>
+                    <div id="cards-container" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-11 gap-2 md:gap-3"></div>
+                </div>
+            </footer>
+        </div>
+    </div>
+    
+    <!-- Confirm Close Room Modal -->
+    <div id="confirm-close-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-sm text-center">
+           <h2 class="text-2xl font-bold mb-4">Close Room?</h2>
+           <p class="text-gray-600 dark:text-gray-400 mb-6">This will end the session for everyone and delete all data. This action cannot be undone.</p>
+           <div class="flex justify-center gap-4">
+               <button id="cancel-delete-btn" class="px-6 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600">Cancel</button>
+               <button id="confirm-delete-btn" class="px-6 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700">Yes, Close</button>
+           </div>
+       </div>
+   </div>
+
+    <!-- Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection, writeBatch, query, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        /** Main function to initialize and run the app */
+        function runApp() {
+            // --- Global App State ---
+            let db, auth, currentUser, currentRoomId, isHost = false;
+            let roomUnsubscribe = null;
+            let participantsUnsubscribe = null;
+
+            // --- DOM Elements ---
+            const lobbyView = document.getElementById('lobby-view');
+            const lobbyControls = document.getElementById('lobby-controls');
+            const gameView = document.getElementById('game-view');
+            const nameModal = document.getElementById('name-modal');
+            const confirmCloseModal = document.getElementById('confirm-close-modal');
+
+            /** Shows a non-blocking UI notification. */
+            function showNotification(message, isError = false) {
+                const notification = document.createElement('div');
+                notification.className = `fixed top-5 right-5 p-4 rounded-lg shadow-lg text-white z-50 transition-all duration-300 transform translate-x-full ${isError ? 'bg-red-600' : 'bg-blue-600'}`;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                setTimeout(() => notification.classList.remove('translate-x-full'), 100);
+                setTimeout(() => {
+                    notification.classList.add('translate-x-full');
+                    setTimeout(() => notification.remove(), 3000);
+                }, 3000);
+            }
+            
+            // --- UI Update Functions ---
+            function renderVotingDeck() {
+                const cardValues = ['0', '1', '2', '3', '5', '8', '13', '21', '∞', '?', '☕'];
+                const container = document.getElementById('cards-container');
+                container.innerHTML = cardValues.map(value => 
+                    `<button data-value="${value}" class="card bg-white dark:bg-gray-700 rounded-lg shadow-md aspect-square flex items-center justify-center text-xl md:text-2xl font-bold border-2 border-transparent">${value}</button>`
+                ).join('');
+            }
+
+            function renderParticipants(participants, votesRevealed) {
+                const container = document.getElementById('participants-container');
+                container.innerHTML = '';
+                for (const [id, data] of Object.entries(participants)) {
+                    const isMe = id === currentUser?.uid;
+                    const hasVoted = data.hasVoted;
+                    
+                    const participantEl = document.createElement('div');
+                    participantEl.className = "text-center";
+                    participantEl.innerHTML = `
+                        <div class="relative aspect-[3/4] w-full">
+                            <div class="participant-card-wrapper absolute inset-0 ${votesRevealed ? 'is-flipped' : ''}">
+                                <div class="card-face card-front"><i class="fa-solid ${hasVoted ? 'fa-check text-green-400' : 'fa-hourglass-half'} text-4xl"></i></div>
+                                <div class="card-face card-back text-5xl font-black">${data.vote || '-'}</div>
+                            </div>
+                        </div>
+                        <div class="mt-2 font-semibold truncate ${isMe ? 'text-blue-500 font-bold' : ''}">${data.name}</div>
+                    `;
+                    container.appendChild(participantEl);
+                }
+            }
+
+            function switchView(view) {
+                lobbyView.classList.add('hidden');
+                gameView.classList.add('hidden');
+                nameModal.classList.add('hidden');
+                document.getElementById(view).classList.remove('hidden');
+            }
+
+            // --- Firestore Logic ---
+            const getRoomRef = () => doc(db, `artifacts/${__app_id || 'default-poker-app'}/public/data/rooms/${currentRoomId}`);
+            const getParticipantsRef = () => collection(db, `artifacts/${__app_id || 'default-poker-app'}/public/data/rooms/${currentRoomId}/participants`);
+
+            async function handleCreateRoom() {
+                if (!currentUser) return showNotification("Authenticating... please wait.", true);
+                isHost = true;
+                currentRoomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+                await setDoc(getRoomRef(), { hostId: currentUser.uid, votesRevealed: false });
+                switchView('name-modal');
+            }
+
+            async function handleJoinRoom(roomId) {
+                if (!currentUser) return showNotification("Authenticating... please wait.", true);
+                if (!roomId) return showNotification("Please enter a Room ID.", true);
+                currentRoomId = roomId;
+                const roomSnap = await getDoc(getRoomRef());
+                if (!roomSnap.exists()) {
+                    currentRoomId = null;
+                    return showNotification("Room not found!", true);
+                }
+                isHost = roomSnap.data().hostId === currentUser.uid;
+                switchView('name-modal');
+            }
+
+            async function handleEnterRoom(name) {
+                if (!name) return showNotification("Please enter a name.", true);
+                await setDoc(doc(getParticipantsRef(), currentUser.uid), { name, vote: null, hasVoted: false });
+
+                document.getElementById('room-id-display').textContent = currentRoomId;
+                document.getElementById('host-controls').classList.toggle('hidden', !isHost);
+                switchView('game-view');
+
+                if (roomUnsubscribe) roomUnsubscribe();
+                roomUnsubscribe = onSnapshot(getRoomRef(), (roomDoc) => {
+                    if (!roomDoc.exists()) {
+                        handleCleanup("The room was closed by the host.");
+                    } else {
+                        const roomData = roomDoc.data();
+                        if (participantsUnsubscribe) participantsUnsubscribe();
+                        participantsUnsubscribe = onSnapshot(query(getParticipantsRef()), (participantsSnap) => {
+                            const participants = {};
+                            participantsSnap.forEach(p => participants[p.id] = p.data());
+                            renderParticipants(participants, roomData.votesRevealed);
+                        });
+                    }
+                });
+            }
+            
+            const revealVotes = () => updateDoc(getRoomRef(), { votesRevealed: true });
+            const resetRound = async () => {
+                const batch = writeBatch(db);
+                const participantsSnap = await getDocs(query(getParticipantsRef()));
+                participantsSnap.forEach(p => batch.update(p.ref, { vote: null, hasVoted: false }));
+                batch.update(getRoomRef(), { votesRevealed: false });
+                await batch.commit();
+                document.querySelectorAll('#cards-container .card.selected').forEach(c => c.classList.remove('selected'));
+            };
+            const deleteRoom = async () => {
+                const batch = writeBatch(db);
+                const participantsSnap = await getDocs(query(getParticipantsRef()));
+                participantsSnap.forEach(p => batch.delete(p.ref));
+                batch.delete(getRoomRef());
+                await batch.commit();
+            };
+
+            function handleCleanup(message) {
+                if (roomUnsubscribe) roomUnsubscribe();
+                if (participantsUnsubscribe) participantsUnsubscribe();
+                roomUnsubscribe = null;
+                participantsUnsubscribe = null;
+                currentRoomId = null;
+                isHost = false;
+                switchView('lobby-view');
+
+                if (message) showNotification(message);
+            }
+
+            function copyRoomIdToClipboard() {
+                if (!currentRoomId) return;
+
+                const textArea = document.createElement("textarea");
+                textArea.value = currentRoomId;
+                
+                textArea.style.position = "fixed";
+                textArea.style.top = "-9999px";
+                textArea.style.left = "-9999px";
+
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+
+                try {
+                    document.execCommand('copy');
+                    showNotification('Room ID copied!');
+                } catch (err) {
+                    showNotification('Failed to copy Room ID.', true);
+                    console.error('Fallback: Oops, unable to copy', err);
+                }
+
+                document.body.removeChild(textArea);
+            }
+
+            // --- Event Listeners ---
+            function setupEventListeners() {
+                document.getElementById('create-room-btn').addEventListener('click', handleCreateRoom);
+                document.getElementById('join-room-btn').addEventListener('click', () => handleJoinRoom(document.getElementById('join-room-input').value.trim().toUpperCase()));
+                
+                document.getElementById('submit-name-btn').addEventListener('click', () => handleEnterRoom(document.getElementById('name-input').value.trim()));
+                document.getElementById('name-input').addEventListener('keyup', (e) => e.key === 'Enter' && handleEnterRoom(document.getElementById('name-input').value.trim()));
+
+                document.getElementById('copy-icon').addEventListener('click', copyRoomIdToClipboard);
+
+                document.getElementById('cards-container').addEventListener('click', (e) => {
+                    if (e.target.matches('.card') && currentUser) {
+                        const value = e.target.dataset.value;
+                        updateDoc(doc(getParticipantsRef(), currentUser.uid), { vote: value, hasVoted: true });
+                        document.querySelectorAll('#cards-container .card').forEach(c => c.classList.toggle('selected', c === e.target));
+                    }
+                });
+
+                document.getElementById('reveal-btn').addEventListener('click', revealVotes);
+                document.getElementById('reset-btn').addEventListener('click', resetRound);
+                document.getElementById('close-room-btn').addEventListener('click', () => confirmCloseModal.classList.remove('hidden'));
+
+                document.getElementById('cancel-delete-btn').addEventListener('click', () => confirmCloseModal.classList.add('hidden'));
+                document.getElementById('confirm-delete-btn').addEventListener('click', () => {
+                    confirmCloseModal.classList.add('hidden');
+                    deleteRoom();
+                });
+            }
+            
+            async function start() {
+                try {
+                    // 1. Wait for configuration to be injected and valid
+                    const firebaseConfig = await new Promise((resolve, reject) => {
+                        let attempts = 0;
+                        const interval = setInterval(() => {
+                            attempts++;
+                            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                                clearInterval(interval);
+                                try {
+                                    const config = JSON.parse(__firebase_config);
+                                    if (config.projectId) {
+                                        resolve(config);
+                                    } else {
+                                        reject(new Error("Firebase config is missing projectId."));
+                                    }
+                                } catch (e) {
+                                    reject(new Error("Failed to parse Firebase config."));
+                                }
+                            } else if (attempts > 50) { // Timeout after ~5 seconds
+                                clearInterval(interval);
+                                reject(new Error("Firebase config not found."));
+                            }
+                        }, 100);
+                    });
+
+                    // 2. Initialize Firebase App, Auth, and Firestore
+                    const app = initializeApp(firebaseConfig);
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+
+                    // 3. Set up UI elements that don't require auth
+                    renderVotingDeck();
+                    setupEventListeners();
+
+                    // 4. Sign in the user and wait for it to complete
+                    const userCredential = await (async () => {
+                        const token = (typeof __initial_auth_token !== 'undefined') ? __initial_auth_token : null;
+                        if (token) return await signInWithCustomToken(auth, token);
+                        else return await signInAnonymously(auth);
+                    })();
+                    currentUser = userCredential.user;
+
+                    // 5. Check URL for a room to join now that we are authenticated
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const roomIdFromUrl = urlParams.get('room');
+                    if (roomIdFromUrl) {
+                        await handleJoinRoom(roomIdFromUrl.toUpperCase());
+                    }
+
+                } catch (error) {
+                    console.error("Application Startup Error:", error);
+                    lobbyControls.innerHTML = `<p class="text-red-500 p-4 bg-red-100 rounded-lg">Error: ${error.message}</p>`;
+                }
+            }
+
+            start();
+        }
+
+        runApp();
+
+    </script>
+</body>
+</html>
