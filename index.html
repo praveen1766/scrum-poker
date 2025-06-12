@@ -58,7 +58,7 @@
             <header class="flex flex-wrap justify-between items-center mb-6">
                 <div>
                     <h1 class="text-3xl font-bold">Planning Poker</h1>
-                    <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Room URL: <strong id="room-id-display" class="select-all cursor-pointer" title="Click to copy room link"></strong> <i id="copy-icon" class="fa-regular fa-copy ml-1 cursor-pointer"></i></div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Room URL: <strong id="room-id-display" class="select-all cursor-pointer break-all" title="Click to copy room link"></strong> <i id="copy-icon" class="fa-regular fa-copy ml-1 cursor-pointer"></i></div>
                 </div>
                  <div id="host-controls" class="hidden items-center gap-2 mt-4 md:mt-0">
                     <button id="reveal-btn" class="px-5 py-2 bg-purple-600 text-white font-bold rounded-lg shadow-md hover:bg-purple-700"><i class="fa-solid fa-eye mr-2"></i>Reveal</button>
@@ -195,10 +195,16 @@
                 await setDoc(doc(getParticipantsRef(), currentUser.uid), { name: name, vote: null, hasVoted: false }, { merge: true });
                 
                 // Update the URL to make it shareable
-                const url = new URL(window.location);
-                url.searchParams.set('room', currentRoomId);
-                window.history.pushState({ roomId: currentRoomId }, '', url.toString());
-                roomIdDisplay.textContent = url.toString();
+                try {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('room', currentRoomId);
+                    window.history.replaceState({ roomId: currentRoomId }, '', url.toString());
+                    roomIdDisplay.textContent = url.toString();
+                } catch(e) {
+                    console.warn("Could not update URL. This is expected in some sandboxed environments.");
+                    roomIdDisplay.textContent = `Room ID: ${currentRoomId} (Share this ID)`;
+                }
+
 
                 document.getElementById('host-controls').classList.toggle('hidden', !isHost);
                 switchView('game-view');
@@ -245,14 +251,18 @@
                 isHost = false;
                 localStorage.removeItem('scrumPokerUser');
                 switchView('lobby-view');
-                window.history.pushState({}, '', window.location.pathname);
+                try {
+                     window.history.replaceState({}, '', window.location.pathname);
+                } catch(e) {
+                    console.warn("Could not clear URL. This is expected in some sandboxed environments.");
+                }
 
                 if (message) showNotification(message);
             }
 
             function copyRoomIdToClipboard() {
                 if (!currentRoomId) return;
-                const roomUrl = new URL(window.location);
+                const roomUrl = new URL(window.location.href);
                 roomUrl.searchParams.set('room', currentRoomId);
 
                 const textArea = document.createElement("textarea");
