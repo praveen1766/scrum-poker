@@ -58,7 +58,7 @@
             <header class="flex flex-wrap justify-between items-center mb-6">
                 <div>
                     <h1 class="text-3xl font-bold">Planning Poker</h1>
-                    <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Room ID: <strong id="room-id-display" class="select-all cursor-pointer" title="Click to copy"></strong> <i id="copy-icon" class="fa-regular fa-copy ml-1 cursor-pointer"></i></div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Room URL: <strong id="room-id-display" class="select-all cursor-pointer" title="Click to copy room link"></strong> <i id="copy-icon" class="fa-regular fa-copy ml-1 cursor-pointer"></i></div>
                 </div>
                  <div id="host-controls" class="hidden items-center gap-2 mt-4 md:mt-0">
                     <button id="reveal-btn" class="px-5 py-2 bg-purple-600 text-white font-bold rounded-lg shadow-md hover:bg-purple-700"><i class="fa-solid fa-eye mr-2"></i>Reveal</button>
@@ -109,6 +109,7 @@
             const gameView = document.getElementById('game-view');
             const nameModal = document.getElementById('name-modal');
             const confirmCloseModal = document.getElementById('confirm-close-modal');
+            const roomIdDisplay = document.getElementById('room-id-display');
 
             /** Shows a non-blocking UI notification. */
             function showNotification(message, isError = false) {
@@ -188,9 +189,17 @@
 
             async function handleEnterRoom(name) {
                 if (!name) return showNotification("Please enter a name.", true);
-                await setDoc(doc(getParticipantsRef(), currentUser.uid), { name, vote: null, hasVoted: false });
+                
+                // Store user details for persistence on reload
+                localStorage.setItem('scrumPokerUser', JSON.stringify({ uid: currentUser.uid, name: name }));
+                await setDoc(doc(getParticipantsRef(), currentUser.uid), { name: name, vote: null, hasVoted: false }, { merge: true });
+                
+                // Update the URL to make it shareable
+                const url = new URL(window.location);
+                url.searchParams.set('room', currentRoomId);
+                window.history.pushState({ roomId: currentRoomId }, '', url.toString());
+                roomIdDisplay.textContent = url.toString();
 
-                document.getElementById('room-id-display').textContent = currentRoomId;
                 document.getElementById('host-controls').classList.toggle('hidden', !isHost);
                 switchView('game-view');
 
@@ -234,16 +243,20 @@
                 participantsUnsubscribe = null;
                 currentRoomId = null;
                 isHost = false;
+                localStorage.removeItem('scrumPokerUser');
                 switchView('lobby-view');
+                window.history.pushState({}, '', window.location.pathname);
 
                 if (message) showNotification(message);
             }
 
             function copyRoomIdToClipboard() {
                 if (!currentRoomId) return;
+                const roomUrl = new URL(window.location);
+                roomUrl.searchParams.set('room', currentRoomId);
 
                 const textArea = document.createElement("textarea");
-                textArea.value = currentRoomId;
+                textArea.value = roomUrl.toString();
                 
                 textArea.style.position = "fixed";
                 textArea.style.top = "-9999px";
@@ -255,9 +268,9 @@
 
                 try {
                     document.execCommand('copy');
-                    showNotification('Room ID copied!');
+                    showNotification('Room link copied!');
                 } catch (err) {
-                    showNotification('Failed to copy Room ID.', true);
+                    showNotification('Failed to copy link.', true);
                     console.error('Fallback: Oops, unable to copy', err);
                 }
 
@@ -318,10 +331,23 @@
                     const userCredential = await signInAnonymously(auth);
                     currentUser = userCredential.user;
 
-                    // 5. Check URL for a room to join now that we are authenticated
+                    // 5. Check if we can auto-rejoin a room from URL and local storage
                     const urlParams = new URLSearchParams(window.location.search);
                     const roomIdFromUrl = urlParams.get('room');
-                    if (roomIdFromUrl) {
+                    const savedUser = JSON.parse(localStorage.getItem('scrumPokerUser'));
+
+                    if (roomIdFromUrl && savedUser && savedUser.uid === currentUser.uid) {
+                        // User reloaded the page, rejoin them automatically
+                        currentRoomId = roomIdFromUrl.toUpperCase();
+                        const roomSnap = await getDoc(getRoomRef());
+                        if (roomSnap.exists()) {
+                            isHost = roomSnap.data().hostId === currentUser.uid;
+                            await handleEnterRoom(savedUser.name);
+                        } else {
+                            handleCleanup("The room you were in has been closed.");
+                        }
+                    } else if (roomIdFromUrl) {
+                        // New user joining from a link
                         await handleJoinRoom(roomIdFromUrl.toUpperCase());
                     }
 
