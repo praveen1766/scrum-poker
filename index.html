@@ -14,15 +14,28 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .card { transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; }
-        .card:hover { transform: translateY(-5px); }
-        .card.selected { transform: translateY(-5px) scale(1.05); border-color: #3b82f6; }
-        .participant-card-wrapper { transition: transform 0.5s; transform-style: preserve-3d; }
-        .participant-card-wrapper.is-flipped { transform: rotateY(180deg); }
-        .card-face { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; border-radius: 0.75rem; }
+        .vote-card { 
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; 
+            width: 60px;
+            height: 90px;
+        }
+        .vote-card:hover { transform: translateY(-5px); }
+        .vote-card.selected { transform: translateY(-5px) scale(1.05); border-color: #3b82f6; background-color: #eff6ff; }
+        .dark .vote-card.selected { background-color: #1e3a8a; }
+
+        .participant-vote-card-wrapper { 
+            transition: transform 0.6s; 
+            transform-style: preserve-3d; 
+            width: 48px; 
+            height: 72px; 
+        }
+        .participant-vote-card-wrapper.is-flipped { transform: rotateY(180deg); }
+        .card-face { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; border-radius: 0.5rem; border: 1px solid #d1d5db; }
+        .dark .card-face { border-color: #4b5563; }
         .card-front { background-color: #9ca3af; color: white; }
         .dark .card-front { background-color: #374151; }
-        .card-back { background-color: #60a5fa; color: white; transform: rotateY(180deg); }
+        .card-back { background-color: #f9fafb; color: #111827; transform: rotateY(180deg); }
+        .dark .card-back { background-color: #1f2937; color: #f9fafb; }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
@@ -60,35 +73,45 @@
                     <h1 class="text-3xl font-bold">Planning Poker</h1>
                     <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Room ID: <strong id="room-id-display" class="select-all cursor-pointer" title="Click to copy room link"></strong> <i id="copy-icon" class="fa-regular fa-copy ml-1 cursor-pointer"></i></div>
                 </div>
-                 <div id="host-controls" class="hidden items-center gap-2 mt-4 md:mt-0">
-                    <button id="reveal-btn" class="px-5 py-2 bg-purple-600 text-white font-bold rounded-lg shadow-md hover:bg-purple-700"><i class="fa-solid fa-eye mr-2"></i>Reveal</button>
-                    <button id="reset-btn" class="px-5 py-2 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700"><i class="fa-solid fa-rotate-right mr-2"></i>New Round</button>
+                 <div class="flex items-center gap-2 mt-4 md:mt-0">
                     <button id="close-room-btn" class="px-5 py-2 bg-red-600 text-white font-bold rounded-lg shadow-md hover:bg-red-700"><i class="fa-solid fa-times-circle mr-2"></i>Close Room</button>
                 </div>
             </header>
             
             <div id="voting-area" class="mb-8 p-4 bg-gray-200 dark:bg-gray-800 rounded-lg shadow-inner">
                 <h2 class="text-xl font-bold text-center mb-4">Place Your Vote</h2>
-                <div id="cards-container" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-11 gap-2 md:gap-3"></div>
+                <div id="cards-container" class="flex flex-wrap justify-center gap-3"></div>
             </div>
 
-            <main id="participants-area" class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md min-h-[16rem] flex items-center justify-center">
-                <div id="participants-container" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-6 w-full"></div>
+            <main id="participants-area" class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+                <div id="host-controls" class="hidden items-center justify-between mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                     <button id="remove-all-btn" class="text-sm text-gray-500 hover:text-red-500"><i class="fa-solid fa-user-minus mr-2"></i>Remove All Participants</button>
+                     <div class="flex gap-2">
+                        <button id="reset-btn" class="px-4 py-2 bg-gray-500 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600">Delete Estimates</button>
+                        <button id="reveal-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700">Show</button>
+                    </div>
+                </div>
+                <div class="flex justify-between font-bold text-gray-500 dark:text-gray-400 px-4 py-2">
+                    <span>Name</span>
+                    <span>Story Points</span>
+                </div>
+                <div id="participants-container" class="space-y-2"></div>
             </main>
         </div>
     </div>
     
-    <!-- Confirm Close Room Modal -->
-    <div id="confirm-close-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
         <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-sm text-center">
-           <h2 class="text-2xl font-bold mb-4">Close Room?</h2>
-           <p class="text-gray-600 dark:text-gray-400 mb-6">This will end the session for everyone and delete all data. This action cannot be undone.</p>
+           <h2 id="confirm-title" class="text-2xl font-bold mb-4">Are you sure?</h2>
+           <p id="confirm-text" class="text-gray-600 dark:text-gray-400 mb-6">This action cannot be undone.</p>
            <div class="flex justify-center gap-4">
-               <button id="cancel-delete-btn" class="px-6 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600">Cancel</button>
-               <button id="confirm-delete-btn" class="px-6 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700">Yes, Close</button>
+               <button id="cancel-btn" class="px-6 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600">Cancel</button>
+               <button id="confirm-btn" class="px-6 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700">Confirm</button>
            </div>
        </div>
    </div>
+
 
     <!-- Firebase -->
     <script type="module">
@@ -96,20 +119,20 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection, writeBatch, query, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        /** Main function to initialize and run the app */
         function runApp() {
             // --- Global App State ---
             let db, auth, currentUser, currentRoomId, isHost = false;
             let roomUnsubscribe = null;
             let participantsUnsubscribe = null;
+            let currentConfirmAction = null;
 
             // --- DOM Elements ---
             const lobbyView = document.getElementById('lobby-view');
-            const lobbyControls = document.getElementById('lobby-controls');
             const gameView = document.getElementById('game-view');
             const nameModal = document.getElementById('name-modal');
-            const confirmCloseModal = document.getElementById('confirm-close-modal');
+            const confirmModal = document.getElementById('confirm-modal');
             const roomIdDisplay = document.getElementById('room-id-display');
+            const revealBtn = document.getElementById('reveal-btn');
 
             /** Shows a non-blocking UI notification. */
             function showNotification(message, isError = false) {
@@ -118,42 +141,35 @@
                 notification.textContent = message;
                 document.body.appendChild(notification);
                 setTimeout(() => notification.classList.remove('translate-x-full'), 100);
-                setTimeout(() => {
-                    notification.classList.add('translate-x-full');
-                    setTimeout(() => notification.remove(), 3000);
-                }, 3000);
+                setTimeout(() => { notification.classList.add('translate-x-full'); setTimeout(() => notification.remove(), 300); }, 3000);
             }
             
             // --- UI Update Functions ---
             function renderVotingDeck() {
-                const cardValues = ['0', '1', '2', '3', '5', '8', '13', '21', '∞', '?', '☕'];
+                const cardValues = ['?', '☕', '0', '0.5', '1', '2', '3', '5', '8', '13', '20', '40', '100'];
                 const container = document.getElementById('cards-container');
                 container.innerHTML = cardValues.map(value => 
-                    `<button data-value="${value}" class="card bg-white dark:bg-gray-700 rounded-lg shadow-md aspect-square flex items-center justify-center text-xl md:text-2xl font-bold border-2 border-transparent">${value}</button>`
+                    `<button data-value="${value}" class="vote-card bg-white dark:bg-gray-700 rounded-lg shadow-md flex items-center justify-center text-2xl font-bold border-2 border-transparent">${value}</button>`
                 ).join('');
             }
 
             function renderParticipants(participants, votesRevealed) {
                 const container = document.getElementById('participants-container');
                 container.innerHTML = '';
-                
-                const sortedParticipants = Object.entries(participants)
-                    .sort(([, a], [, b]) => a.name.localeCompare(b.name));
+                const sortedParticipants = Object.entries(participants).sort(([, a], [, b]) => a.name.localeCompare(b.name));
 
                 for (const [id, data] of sortedParticipants) {
                     const isMe = id === currentUser?.uid;
-                    const hasVoted = data.hasVoted;
-                    
                     const participantEl = document.createElement('div');
-                    participantEl.className = "text-center";
+                    participantEl.className = 'flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50';
                     participantEl.innerHTML = `
-                        <div class="relative aspect-[3/4] w-full">
-                            <div class="participant-card-wrapper absolute inset-0 ${votesRevealed ? 'is-flipped' : ''}">
-                                <div class="card-face card-front"><i class="fa-solid ${hasVoted ? 'fa-check text-green-400' : 'fa-hourglass-half'} text-4xl"></i></div>
-                                <div class="card-face card-back text-5xl font-black">${data.vote || '-'}</div>
+                        <span class="font-semibold ${isMe ? 'text-blue-500' : ''}">${data.name}</span>
+                        <div class="relative">
+                            <div class="participant-vote-card-wrapper ${votesRevealed ? 'is-flipped' : ''}">
+                                <div class="card-face card-front"><i class="fa-solid ${data.hasVoted ? 'fa-check text-green-400' : 'fa-hourglass-half'} text-2xl"></i></div>
+                                <div class="card-face card-back text-2xl font-bold">${data.vote || '-'}</div>
                             </div>
                         </div>
-                        <div class="mt-2 font-semibold truncate ${isMe ? 'text-blue-500 font-bold' : ''}">${data.name}</div>
                     `;
                     container.appendChild(participantEl);
                 }
@@ -171,7 +187,7 @@
             const getParticipantsRef = () => collection(db, `scrum-poker-rooms/${currentRoomId}/participants`);
 
             async function handleCreateRoom() {
-                if (!currentUser) return showNotification("Authenticating... please wait.", true);
+                if (!currentUser) return;
                 isHost = true;
                 currentRoomId = Math.random().toString(36).substring(2, 8).toUpperCase();
                 await setDoc(getRoomRef(), { hostId: currentUser.uid, votesRevealed: false });
@@ -179,8 +195,7 @@
             }
 
             async function handleJoinRoom(roomId) {
-                if (!currentUser) return showNotification("Authenticating... please wait.", true);
-                if (!roomId) return showNotification("Please enter a Room ID.", true);
+                if (!currentUser || !roomId) return;
                 currentRoomId = roomId;
                 const roomSnap = await getDoc(getRoomRef());
                 if (!roomSnap.exists()) {
@@ -193,22 +208,16 @@
 
             async function handleEnterRoom(name) {
                 if (!name) return showNotification("Please enter a name.", true);
-                
-                // Store user details for persistence on reload
                 localStorage.setItem('scrumPokerUser', JSON.stringify({ uid: currentUser.uid, name: name }));
-                await setDoc(doc(getParticipantsRef(), currentUser.uid), { name: name, vote: null, hasVoted: false }, { merge: true });
+                await setDoc(doc(getParticipantsRef(), currentUser.uid), { name, vote: null, hasVoted: false }, { merge: true });
                 
-                // Update the URL to make it shareable
                 try {
                     const url = new URL(window.location.href);
                     url.searchParams.set('room', currentRoomId);
                     window.history.replaceState({ roomId: currentRoomId }, '', url.toString());
-                } catch(e) {
-                    console.warn("Could not update URL. This is expected in some sandboxed environments.");
-                }
+                } catch(e) { console.warn("Could not update URL."); }
+                
                 roomIdDisplay.textContent = currentRoomId;
-
-
                 document.getElementById('host-controls').classList.toggle('hidden', !isHost);
                 switchView('game-view');
 
@@ -218,25 +227,44 @@
                         handleCleanup("The room was closed by the host.");
                     } else {
                         const roomData = roomDoc.data();
+                        revealBtn.textContent = roomData.votesRevealed ? 'Hide' : 'Show';
                         if (participantsUnsubscribe) participantsUnsubscribe();
-                        participantsUnsubscribe = onSnapshot(query(getParticipantsRef()), (participantsSnap) => {
+                        participantsUnsubscribe = onSnapshot(query(getParticipantsRef()), (pSnap) => {
                             const participants = {};
-                            participantsSnap.forEach(p => participants[p.id] = p.data());
+                            pSnap.forEach(p => participants[p.id] = p.data());
                             renderParticipants(participants, roomData.votesRevealed);
                         });
                     }
                 });
             }
             
-            const revealVotes = () => updateDoc(getRoomRef(), { votesRevealed: true });
+            const toggleVotes = async () => {
+                const roomDoc = await getDoc(getRoomRef());
+                const currentStatus = roomDoc.data().votesRevealed;
+                updateDoc(getRoomRef(), { votesRevealed: !currentStatus });
+            };
+
             const resetRound = async () => {
                 const batch = writeBatch(db);
                 const participantsSnap = await getDocs(query(getParticipantsRef()));
                 participantsSnap.forEach(p => batch.update(p.ref, { vote: null, hasVoted: false }));
                 batch.update(getRoomRef(), { votesRevealed: false });
                 await batch.commit();
-                document.querySelectorAll('#cards-container .card.selected').forEach(c => c.classList.remove('selected'));
+                document.querySelectorAll('#cards-container .vote-card.selected').forEach(c => c.classList.remove('selected'));
             };
+
+            const removeAllParticipants = async () => {
+                 const batch = writeBatch(db);
+                const participantsSnap = await getDocs(query(getParticipantsRef()));
+                participantsSnap.forEach(p => {
+                    if (p.id !== currentUser.uid) { // Don't remove the host
+                        batch.delete(p.ref);
+                    }
+                });
+                await batch.commit();
+                showNotification("All participants have been removed.");
+            }
+
             const deleteRoom = async () => {
                 const batch = writeBatch(db);
                 const participantsSnap = await getDocs(query(getParticipantsRef()));
@@ -248,109 +276,90 @@
             function handleCleanup(message) {
                 if (roomUnsubscribe) roomUnsubscribe();
                 if (participantsUnsubscribe) participantsUnsubscribe();
-                roomUnsubscribe = null;
-                participantsUnsubscribe = null;
-                currentRoomId = null;
-                isHost = false;
                 localStorage.removeItem('scrumPokerUser');
+                currentRoomId = null;
                 switchView('lobby-view');
-                try {
-                     window.history.replaceState({}, '', window.location.pathname);
-                } catch(e) {
-                    console.warn("Could not clear URL. This is expected in some sandboxed environments.");
-                }
-
+                try { window.history.replaceState({}, '', window.location.pathname); } catch(e) {}
                 if (message) showNotification(message);
             }
 
-            function copyRoomIdToClipboard() {
+            function copyRoomLinkToClipboard() {
                 if (!currentRoomId) return;
                 const roomUrl = new URL(window.location.href);
                 roomUrl.searchParams.set('room', currentRoomId);
-
                 const textArea = document.createElement("textarea");
                 textArea.value = roomUrl.toString();
-                
                 textArea.style.position = "fixed";
-                textArea.style.top = "-9999px";
                 textArea.style.left = "-9999px";
-
                 document.body.appendChild(textArea);
-                textArea.focus();
                 textArea.select();
-
-                try {
-                    document.execCommand('copy');
-                    showNotification('Room link copied!');
-                } catch (err) {
-                    showNotification('Failed to copy link.', true);
-                    console.error('Fallback: Oops, unable to copy', err);
-                }
-
+                try { document.execCommand('copy'); showNotification('Room link copied!'); } 
+                catch (err) { showNotification('Failed to copy link.', true); }
                 document.body.removeChild(textArea);
+            }
+
+            function showConfirmation(action) {
+                currentConfirmAction = action;
+                const title = document.getElementById('confirm-title');
+                const text = document.getElementById('confirm-text');
+                if (action === 'reset') {
+                    title.textContent = 'Delete Estimates?';
+                    text.textContent = 'This will clear all current votes and start a new round. This cannot be undone.';
+                } else if (action === 'close') {
+                     title.textContent = 'Close Room?';
+                    text.textContent = 'This will end the session for everyone and delete all room data. This cannot be undone.';
+                } else if (action === 'removeAll') {
+                    title.textContent = 'Remove All Participants?';
+                    text.textContent = 'This will remove everyone from the room except for you (the host).';
+                }
+                confirmModal.classList.remove('hidden');
             }
 
             // --- Event Listeners ---
             function setupEventListeners() {
                 document.getElementById('create-room-btn').addEventListener('click', handleCreateRoom);
                 document.getElementById('join-room-btn').addEventListener('click', () => handleJoinRoom(document.getElementById('join-room-input').value.trim().toUpperCase()));
-                
                 document.getElementById('submit-name-btn').addEventListener('click', () => handleEnterRoom(document.getElementById('name-input').value.trim()));
                 document.getElementById('name-input').addEventListener('keyup', (e) => e.key === 'Enter' && handleEnterRoom(document.getElementById('name-input').value.trim()));
-
-                document.getElementById('copy-icon').addEventListener('click', copyRoomIdToClipboard);
-
+                document.getElementById('copy-icon').addEventListener('click', copyRoomLinkToClipboard);
                 document.getElementById('cards-container').addEventListener('click', (e) => {
-                    if (e.target.matches('.card') && currentUser) {
+                    if (e.target.matches('.vote-card') && currentUser) {
                         const value = e.target.dataset.value;
                         updateDoc(doc(getParticipantsRef(), currentUser.uid), { vote: value, hasVoted: true });
-                        document.querySelectorAll('#cards-container .card').forEach(c => c.classList.toggle('selected', c === e.target));
+                        document.querySelectorAll('#cards-container .vote-card').forEach(c => c.classList.remove('selected'));
+                        e.target.classList.add('selected');
                     }
                 });
+                // Host Controls
+                revealBtn.addEventListener('click', toggleVotes);
+                document.getElementById('reset-btn').addEventListener('click', () => showConfirmation('reset'));
+                document.getElementById('remove-all-btn').addEventListener('click', () => showConfirmation('removeAll'));
+                document.getElementById('close-room-btn').addEventListener('click', () => showConfirmation('close'));
 
-                document.getElementById('reveal-btn').addEventListener('click', revealVotes);
-                document.getElementById('reset-btn').addEventListener('click', resetRound);
-                document.getElementById('close-room-btn').addEventListener('click', () => confirmCloseModal.classList.remove('hidden'));
-
-                document.getElementById('cancel-delete-btn').addEventListener('click', () => confirmCloseModal.classList.add('hidden'));
-                document.getElementById('confirm-delete-btn').addEventListener('click', () => {
-                    confirmCloseModal.classList.add('hidden');
-                    deleteRoom();
+                // Confirmation Modal
+                document.getElementById('cancel-btn').addEventListener('click', () => confirmModal.classList.add('hidden'));
+                document.getElementById('confirm-btn').addEventListener('click', () => {
+                    if (currentConfirmAction === 'reset') resetRound();
+                    else if (currentConfirmAction === 'close') deleteRoom();
+                    else if (currentConfirmAction === 'removeAll') removeAllParticipants();
+                    confirmModal.classList.add('hidden');
                 });
             }
             
             async function start() {
                 try {
-                    // 1. Your Firebase Configuration
-                    const firebaseConfig = {
-                      apiKey: "AIzaSyBxCu-lCHYpt8_LCl2eVscCLJA0cXLbq3A",
-                      authDomain: "scrum-poker-app-2b25a.firebaseapp.com",
-                      projectId: "scrum-poker-app-2b25a",
-                      storageBucket: "scrum-poker-app-2b25a.appspot.com",
-                      messagingSenderId: "404252644304",
-                      appId: "1:404252644304:web:69790c09be6b5dc39d5fd5"
-                    };
-
-                    // 2. Initialize Firebase App, Auth, and Firestore
+                    const firebaseConfig = { apiKey: "AIzaSyBxCu-lCHYpt8_LCl2eVscCLJA0cXLbq3A", authDomain: "scrum-poker-app-2b25a.firebaseapp.com", projectId: "scrum-poker-app-2b25a", storageBucket: "scrum-poker-app-2b25a.appspot.com", messagingSenderId: "404252644304", appId: "1:404252644304:web:69790c09be6b5dc39d5fd5" };
                     const app = initializeApp(firebaseConfig);
                     auth = getAuth(app);
                     db = getFirestore(app);
-
-                    // 3. Set up UI elements that don't require auth
                     renderVotingDeck();
                     setupEventListeners();
-
-                    // 4. Sign in the user anonymously and wait for it to complete
                     const userCredential = await signInAnonymously(auth);
                     currentUser = userCredential.user;
-
-                    // 5. Check if we can auto-rejoin a room from URL and local storage
                     const urlParams = new URLSearchParams(window.location.search);
                     const roomIdFromUrl = urlParams.get('room');
                     const savedUser = JSON.parse(localStorage.getItem('scrumPokerUser'));
-
                     if (roomIdFromUrl && savedUser && savedUser.uid === currentUser.uid) {
-                        // User reloaded the page, rejoin them automatically
                         currentRoomId = roomIdFromUrl.toUpperCase();
                         const roomSnap = await getDoc(getRoomRef());
                         if (roomSnap.exists()) {
@@ -360,21 +369,16 @@
                             handleCleanup("The room you were in has been closed.");
                         }
                     } else if (roomIdFromUrl) {
-                        // New user joining from a link
                         await handleJoinRoom(roomIdFromUrl.toUpperCase());
                     }
-
                 } catch (error) {
                     console.error("Application Startup Error:", error);
-                    lobbyControls.innerHTML = `<p class="text-red-500 p-4 bg-red-100 rounded-lg">Error: ${error.message}</p>`;
+                    document.getElementById('lobby-controls').innerHTML = `<p class="text-red-500 p-4 bg-red-100 rounded-lg">Error: ${error.message}</p>`;
                 }
             }
-
             start();
         }
-
         runApp();
-
     </script>
 </body>
 </html>
