@@ -295,29 +295,15 @@
             
             async function start() {
                 try {
-                    // 1. Wait for configuration to be injected and valid
-                    const firebaseConfig = await new Promise((resolve, reject) => {
-                        let attempts = 0;
-                        const interval = setInterval(() => {
-                            attempts++;
-                            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                                clearInterval(interval);
-                                try {
-                                    const config = JSON.parse(__firebase_config);
-                                    if (config.projectId) {
-                                        resolve(config);
-                                    } else {
-                                        reject(new Error("Firebase config is missing projectId."));
-                                    }
-                                } catch (e) {
-                                    reject(new Error("Failed to parse Firebase config."));
-                                }
-                            } else if (attempts > 50) { // Timeout after ~5 seconds
-                                clearInterval(interval);
-                                reject(new Error("Firebase config not found."));
-                            }
-                        }, 100);
-                    });
+                    // Your web app's Firebase configuration
+                    const firebaseConfig = {
+                      apiKey: "AIzaSyBxCu-lCHYpt8_LCl2eVscCLJA0cXLbq3A",
+                      authDomain: "scrum-poker-app-2b25a.firebaseapp.com",
+                      projectId: "scrum-poker-app-2b25a",
+                      storageBucket: "scrum-poker-app-2b25a.firebasestorage.app",
+                      messagingSenderId: "404252644304",
+                      appId: "1:404252644304:web:69790c09be6b5dc39d5fd5"
+                    };
 
                     // 2. Initialize Firebase App, Auth, and Firestore
                     const app = initializeApp(firebaseConfig);
