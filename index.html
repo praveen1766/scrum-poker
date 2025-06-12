@@ -70,7 +70,7 @@
         <div id="game-view" class="hidden">
             <header class="flex flex-wrap justify-between items-center mb-6">
                 <div>
-                    <h1 class="text-3xl font-bold">Planning Poker</h1>
+                    <h1 class="text-3xl font-bold">Scrum Poker</h1>
                     <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Room ID: <strong id="room-id-display" class="select-all cursor-pointer" title="Click to copy room link"></strong> <i id="copy-icon" class="fa-regular fa-copy ml-1 cursor-pointer"></i></div>
                 </div>
                  <div class="flex items-center gap-2 mt-4 md:mt-0">
@@ -79,24 +79,23 @@
             </header>
             
             <div id="voting-area" class="mb-8 p-4 bg-gray-200 dark:bg-gray-800 rounded-lg shadow-inner">
-                <h2 class="text-xl font-bold text-center mb-4">Place Your Vote</h2>
+                <h2 class="text-xl font-bold text-center mb-4">Provide your estimate</h2>
                 <div id="cards-container" class="flex flex-wrap justify-center gap-3"></div>
             </div>
 
             <main class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md max-w-4xl mx-auto">
-                <div id="host-controls" class="hidden items-center justify-between mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-                     <button id="remove-all-btn" class="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-600"><i class="fa-solid fa-user-minus mr-2"></i>Remove All</button>
-                     <div class="flex-grow flex justify-center gap-2">
-                        <button id="reset-btn" class="px-4 py-2 bg-gray-500 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600">Delete Estimates</button>
-                        <button id="reveal-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700">Show</button>
+                <div id="host-controls" class="hidden items-center justify-between mb-4 pb-4 border-b border-gray-200 dark:border-gray-700 gap-4">
+                     <button id="remove-all-btn" class="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-600 text-sm whitespace-nowrap"><i class="fa-solid fa-user-minus mr-2"></i>Remove All</button>
+                     <div class="flex justify-center gap-2">
+                        <button id="reset-btn" class="px-4 py-2 bg-gray-500 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600 text-sm whitespace-nowrap">Delete Estimates</button>
+                        <button id="reveal-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 text-sm whitespace-nowrap">Show</button>
                     </div>
-                    <div class="w-32"></div> <!-- Spacer to balance the layout -->
                 </div>
                 <div class="flex justify-between font-bold text-gray-500 dark:text-gray-400 px-4 py-2">
                     <span>Name</span>
                     <span>Story Points</span>
                 </div>
-                <div id="participants-container" class="space-y-2"></div>
+                <div id="participants-container" class="space-y-1"></div>
             </main>
         </div>
     </div>
@@ -159,10 +158,11 @@
                 container.innerHTML = '';
                 const sortedParticipants = Object.entries(participants).sort(([, a], [, b]) => a.name.localeCompare(b.name));
 
-                for (const [id, data] of sortedParticipants) {
+                sortedParticipants.forEach(([id, data], index) => {
                     const isMe = id === currentUser?.uid;
                     const participantEl = document.createElement('div');
-                    participantEl.className = 'flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50';
+                    const bgColor = index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-700/50' : 'bg-white dark:bg-gray-800';
+                    participantEl.className = `flex items-center justify-between p-3 rounded-lg ${bgColor}`;
                     participantEl.innerHTML = `
                         <span class="font-semibold break-all ${isMe ? 'text-blue-500' : ''}">${data.name}</span>
                         <div class="relative flex-shrink-0">
@@ -173,7 +173,7 @@
                         </div>
                     `;
                     container.appendChild(participantEl);
-                }
+                });
             }
 
             function switchView(view) {
