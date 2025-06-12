@@ -58,7 +58,7 @@
             <header class="flex flex-wrap justify-between items-center mb-6">
                 <div>
                     <h1 class="text-3xl font-bold">Planning Poker</h1>
-                    <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Room URL: <strong id="room-id-display" class="select-all cursor-pointer break-all" title="Click to copy room link"></strong> <i id="copy-icon" class="fa-regular fa-copy ml-1 cursor-pointer"></i></div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Room ID: <strong id="room-id-display" class="select-all cursor-pointer" title="Click to copy room link"></strong> <i id="copy-icon" class="fa-regular fa-copy ml-1 cursor-pointer"></i></div>
                 </div>
                  <div id="host-controls" class="hidden items-center gap-2 mt-4 md:mt-0">
                     <button id="reveal-btn" class="px-5 py-2 bg-purple-600 text-white font-bold rounded-lg shadow-md hover:bg-purple-700"><i class="fa-solid fa-eye mr-2"></i>Reveal</button>
@@ -66,15 +66,15 @@
                     <button id="close-room-btn" class="px-5 py-2 bg-red-600 text-white font-bold rounded-lg shadow-md hover:bg-red-700"><i class="fa-solid fa-times-circle mr-2"></i>Close Room</button>
                 </div>
             </header>
-            <main id="participants-area" class="mb-32 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md min-h-[16rem] flex items-center justify-center">
+            
+            <div id="voting-area" class="mb-8 p-4 bg-gray-200 dark:bg-gray-800 rounded-lg shadow-inner">
+                <h2 class="text-xl font-bold text-center mb-4">Place Your Vote</h2>
+                <div id="cards-container" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-11 gap-2 md:gap-3"></div>
+            </div>
+
+            <main id="participants-area" class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md min-h-[16rem] flex items-center justify-center">
                 <div id="participants-container" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-6 w-full"></div>
             </main>
-            <footer class="fixed bottom-0 left-0 right-0 bg-gray-200 dark:bg-gray-800 p-4 shadow-inner">
-                 <div class="max-w-6xl mx-auto text-center">
-                    <h2 class="text-xl font-bold mb-4">Place Your Vote</h2>
-                    <div id="cards-container" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-11 gap-2 md:gap-3"></div>
-                </div>
-            </footer>
         </div>
     </div>
     
@@ -136,7 +136,11 @@
             function renderParticipants(participants, votesRevealed) {
                 const container = document.getElementById('participants-container');
                 container.innerHTML = '';
-                for (const [id, data] of Object.entries(participants)) {
+                
+                const sortedParticipants = Object.entries(participants)
+                    .sort(([, a], [, b]) => a.name.localeCompare(b.name));
+
+                for (const [id, data] of sortedParticipants) {
                     const isMe = id === currentUser?.uid;
                     const hasVoted = data.hasVoted;
                     
@@ -199,11 +203,10 @@
                     const url = new URL(window.location.href);
                     url.searchParams.set('room', currentRoomId);
                     window.history.replaceState({ roomId: currentRoomId }, '', url.toString());
-                    roomIdDisplay.textContent = url.toString();
                 } catch(e) {
                     console.warn("Could not update URL. This is expected in some sandboxed environments.");
-                    roomIdDisplay.textContent = `Room ID: ${currentRoomId} (Share this ID)`;
                 }
+                roomIdDisplay.textContent = currentRoomId;
 
 
                 document.getElementById('host-controls').classList.toggle('hidden', !isHost);
