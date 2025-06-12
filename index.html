@@ -319,8 +319,11 @@
                     currentUser = userCredential.user;
 
                     // 5. Check URL for a room to join now that we are authenticated
-                    // This part is removed because it can cause issues in certain hosting environments.
-                    // Users will need to manually enter the Room ID.
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const roomIdFromUrl = urlParams.get('room');
+                    if (roomIdFromUrl) {
+                        await handleJoinRoom(roomIdFromUrl.toUpperCase());
+                    }
 
                 } catch (error) {
                     console.error("Application Startup Error:", error);
