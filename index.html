@@ -162,8 +162,8 @@
             }
 
             // --- Firestore Logic ---
-            const getRoomRef = () => doc(db, `artifacts/${__app_id || 'default-poker-app'}/public/data/rooms/${currentRoomId}`);
-            const getParticipantsRef = () => collection(db, `artifacts/${__app_id || 'default-poker-app'}/public/data/rooms/${currentRoomId}/participants`);
+            const getRoomRef = () => doc(db, `scrum-poker-rooms/${currentRoomId}`);
+            const getParticipantsRef = () => collection(db, `scrum-poker-rooms/${currentRoomId}/participants`);
 
             async function handleCreateRoom() {
                 if (!currentUser) return showNotification("Authenticating... please wait.", true);
@@ -295,12 +295,12 @@
             
             async function start() {
                 try {
-                    // Your web app's Firebase configuration
+                    // 1. Your Firebase Configuration
                     const firebaseConfig = {
                       apiKey: "AIzaSyBxCu-lCHYpt8_LCl2eVscCLJA0cXLbq3A",
                       authDomain: "scrum-poker-app-2b25a.firebaseapp.com",
                       projectId: "scrum-poker-app-2b25a",
-                      storageBucket: "scrum-poker-app-2b25a.firebasestorage.app",
+                      storageBucket: "scrum-poker-app-2b25a.appspot.com",
                       messagingSenderId: "404252644304",
                       appId: "1:404252644304:web:69790c09be6b5dc39d5fd5"
                     };
@@ -314,20 +314,13 @@
                     renderVotingDeck();
                     setupEventListeners();
 
-                    // 4. Sign in the user and wait for it to complete
-                    const userCredential = await (async () => {
-                        const token = (typeof __initial_auth_token !== 'undefined') ? __initial_auth_token : null;
-                        if (token) return await signInWithCustomToken(auth, token);
-                        else return await signInAnonymously(auth);
-                    })();
+                    // 4. Sign in the user anonymously and wait for it to complete
+                    const userCredential = await signInAnonymously(auth);
                     currentUser = userCredential.user;
 
                     // 5. Check URL for a room to join now that we are authenticated
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const roomIdFromUrl = urlParams.get('room');
-                    if (roomIdFromUrl) {
-                        await handleJoinRoom(roomIdFromUrl.toUpperCase());
-                    }
+                    // This part is removed because it can cause issues in certain hosting environments.
+                    // Users will need to manually enter the Room ID.
 
                 } catch (error) {
                     console.error("Application Startup Error:", error);
