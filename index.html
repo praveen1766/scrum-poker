@@ -71,9 +71,9 @@
             <header class="flex flex-wrap justify-between items-center mb-6">
                 <div>
                     <h1 class="text-3xl font-bold">Scrum Poker</h1>
-                    <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Room ID: <strong id="room-id-display" class="select-all cursor-pointer" title="Click to copy room link"></strong> <i id="copy-icon" class="fa-regular fa-copy ml-1 cursor-pointer"></i></div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Room ID: <strong id="room-id-display" class="select-all cursor-pointer" title="Click to copy Room ID"></strong> <i id="copy-icon" class="fa-regular fa-copy ml-1 cursor-pointer"></i></div>
                 </div>
-                 <div class="flex items-center gap-2 mt-4 md:mt-0">
+                 <div id="close-room-container" class="hidden items-center gap-2 mt-4 md:mt-0">
                     <button id="close-room-btn" class="px-5 py-2 bg-red-600 text-white font-bold rounded-lg shadow-md hover:bg-red-700"><i class="fa-solid fa-times-circle mr-2"></i>Close Room</button>
                 </div>
             </header>
@@ -85,9 +85,9 @@
 
             <main class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md max-w-4xl mx-auto">
                 <div id="host-controls" class="hidden flex items-center justify-between mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-                     <button id="remove-all-btn" class="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-600 text-sm whitespace-nowrap"><i class="fa-solid fa-user-minus mr-2"></i>Remove All</button>
+                     <button id="remove-all-btn" class="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-600 text-sm whitespace-nowrap hidden"><i class="fa-solid fa-user-minus mr-2"></i>Remove All</button>
                      <button id="reset-btn" class="px-4 py-2 bg-gray-500 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600 text-sm whitespace-nowrap">Delete Estimates</button>
-                     <button id="reveal-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 text-sm whitespace-nowrap">Show</button>
+                     <button id="reveal-btn" class="w-24 text-center px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 text-sm whitespace-nowrap">Show</button>
                 </div>
                 <div class="flex justify-between font-bold text-gray-500 dark:text-gray-400 px-3 py-2">
                     <span>Name</span>
@@ -131,6 +131,8 @@
             const confirmModal = document.getElementById('confirm-modal');
             const roomIdDisplay = document.getElementById('room-id-display');
             const revealBtn = document.getElementById('reveal-btn');
+            const hostControls = document.getElementById('host-controls');
+            const closeRoomContainer = document.getElementById('close-room-container');
 
             /** Shows a non-blocking UI notification. */
             function showNotification(message, isError = false) {
@@ -163,8 +165,8 @@
                     participantEl.className = `flex items-center justify-between py-1 px-3 rounded-lg ${bgColor}`;
                     participantEl.innerHTML = `
                         <span class="font-semibold break-all flex-grow pr-4 ${isMe ? 'text-blue-500' : ''}">${data.name}</span>
-                        <div class="relative flex-shrink-0" style="height: 54px; width: 36px;">
-                            <div class="participant-vote-card-wrapper absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${votesRevealed ? 'is-flipped' : ''}">
+                        <div class="relative flex-shrink-0 flex items-center justify-center" style="height: 54px; width: 36px;">
+                            <div class="participant-vote-card-wrapper ${votesRevealed ? 'is-flipped' : ''}">
                                 <div class="card-face card-front"><i class="fa-solid ${data.hasVoted ? 'fa-check text-green-400' : 'fa-hourglass-half'} text-xl"></i></div>
                                 <div class="card-face card-back text-xl font-bold">${data.vote || '-'}</div>
                             </div>
@@ -217,7 +219,12 @@
                 } catch(e) { console.warn("Could not update URL."); }
                 
                 roomIdDisplay.textContent = currentRoomId;
-                document.getElementById('host-controls').classList.toggle('hidden', !isHost);
+                
+                // Show/hide controls based on host status
+                hostControls.classList.remove('hidden');
+                document.getElementById('remove-all-btn').classList.toggle('hidden', !isHost);
+                closeRoomContainer.classList.toggle('hidden', !isHost);
+
                 switchView('game-view');
 
                 if (roomUnsubscribe) roomUnsubscribe();
@@ -253,7 +260,8 @@
             };
 
             const removeAllParticipants = async () => {
-                 const batch = writeBatch(db);
+                if (!isHost) return showNotification("Only the host can remove participants.", true);
+                const batch = writeBatch(db);
                 const participantsSnap = await getDocs(query(getParticipantsRef()));
                 participantsSnap.forEach(p => {
                     if (p.id !== currentUser.uid) { // Don't remove the host
@@ -265,6 +273,7 @@
             }
 
             const deleteRoom = async () => {
+                if (!isHost) return;
                 const batch = writeBatch(db);
                 const participantsSnap = await getDocs(query(getParticipantsRef()));
                 participantsSnap.forEach(p => batch.delete(p.ref));
@@ -282,22 +291,30 @@
                 if (message) showNotification(message);
             }
 
-            function copyRoomLinkToClipboard() {
+            function copyRoomIdToClipboard() {
                 if (!currentRoomId) return;
-                const roomUrl = new URL(window.location.href);
-                roomUrl.searchParams.set('room', currentRoomId);
                 const textArea = document.createElement("textarea");
-                textArea.value = roomUrl.toString();
+                textArea.value = currentRoomId;
                 textArea.style.position = "fixed";
                 textArea.style.left = "-9999px";
                 document.body.appendChild(textArea);
                 textArea.select();
-                try { document.execCommand('copy'); showNotification('Room link copied!'); } 
-                catch (err) { showNotification('Failed to copy link.', true); }
+                try { 
+                    document.execCommand('copy'); 
+                    showNotification('Room ID copied!'); 
+                } 
+                catch (err) { 
+                    showNotification('Failed to copy Room ID.', true);
+                    console.error('Fallback: Oops, unable to copy', err);
+                }
                 document.body.removeChild(textArea);
             }
 
             function showConfirmation(action) {
+                if ((action === 'close' || action === 'removeAll') && !isHost) {
+                     return showNotification(`Only the host can perform this action.`, true);
+                }
+                
                 currentConfirmAction = action;
                 const title = document.getElementById('confirm-title');
                 const text = document.getElementById('confirm-text');
@@ -320,7 +337,7 @@
                 document.getElementById('join-room-btn').addEventListener('click', () => handleJoinRoom(document.getElementById('join-room-input').value.trim().toUpperCase()));
                 document.getElementById('submit-name-btn').addEventListener('click', () => handleEnterRoom(document.getElementById('name-input').value.trim()));
                 document.getElementById('name-input').addEventListener('keyup', (e) => e.key === 'Enter' && handleEnterRoom(document.getElementById('name-input').value.trim()));
-                document.getElementById('copy-icon').addEventListener('click', copyRoomLinkToClipboard);
+                document.getElementById('copy-icon').addEventListener('click', copyRoomIdToClipboard);
                 document.getElementById('cards-container').addEventListener('click', (e) => {
                     if (e.target.matches('.vote-card') && currentUser) {
                         const value = e.target.dataset.value;
