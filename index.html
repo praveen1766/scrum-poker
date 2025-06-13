@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Collaborative Scrum Poker</title>
+    <title>Scrum Poker</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2210%22 y=%2210%22 width=%2280%22 height=%2280%22 rx=%2215%22 fill=%22%233b82f6%22/><text x=%2250%22 y=%2268%22 font-size=%2245%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22 font-family=%22sans-serif%22>SP</text></svg>">
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter -->
@@ -311,8 +312,8 @@
             }
 
             function showConfirmation(action) {
-                if ((action === 'close' || action === 'removeAll') && !isHost) {
-                     return showNotification(`Only the host can perform this action.`, true);
+                if (action === 'close' || action === 'removeAll') {
+                     if (!isHost) return showNotification(`Only the host can perform this action.`, true);
                 }
                 
                 currentConfirmAction = action;
