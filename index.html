@@ -138,11 +138,22 @@
             /** Shows a non-blocking UI notification. */
             function showNotification(message, isError = false) {
                 const notification = document.createElement('div');
-                notification.className = `fixed top-5 right-5 p-4 rounded-lg shadow-lg text-white z-50 transition-all duration-300 transform translate-x-full ${isError ? 'bg-red-600' : 'bg-blue-600'}`;
+                notification.className = `fixed top-5 right-5 p-4 rounded-lg shadow-lg text-white z-50 transition-transform duration-300 ease-in-out transform translate-x-full ${isError ? 'bg-red-600' : 'bg-blue-600'}`;
                 notification.textContent = message;
                 document.body.appendChild(notification);
-                setTimeout(() => notification.classList.remove('translate-x-full'), 100);
-                setTimeout(() => { notification.classList.add('translate-x-full'); setTimeout(() => notification.remove(), 3000); }, 3000);
+
+                requestAnimationFrame(() => {
+                    notification.classList.remove('translate-x-full');
+                });
+
+                const removeNotification = () => {
+                    notification.classList.add('translate-x-full');
+                    notification.addEventListener('transitionend', () => {
+                        notification.remove();
+                    }, { once: true });
+                };
+
+                setTimeout(removeNotification, 3000);
             }
             
             // --- UI Update Functions ---
