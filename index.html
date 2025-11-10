@@ -3,21 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scrum Poker - Free Real-time Story Pointing</title>
+    <title>Scrum Poker</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2210%22 y=%2210%22 width=%2280%22 height=%2280%22 rx=%2215%22 fill=%22%233b82f6%22/><text x=%2250%22 y=%2268%22 font-size=%2245%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22 font-family=%22sans-serif%22>SP</text></svg>">
     
-    <!-- SEO Meta Tags -->
     <meta name="description" content="A free, simple, and real-time web app for agile teams to conduct scrum poker for story point estimation. No sign-up required.">
     <meta name="keywords" content="scrum poker, planning poker, story points, agile, estimation, pointing, free scrum poker tool">
-    <meta name="google-site-verification" content="AXIP_bZHqIePrCTkCpHLIf-BrT60QE35gRqLP0m0XVw" />
+    <meta name="google-site-verification" content="XjwoFwUCtrGB4rHLECYIfK60K2-QfpiBp2TVQwHAK18" />
 
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2210%22 y=%2210%22 width=%2280%22 height=%2280%22 rx=%2215%22 fill=%22%233b82f6%22/><text x=%2250%22 y=%2268%22 font-size=%2245%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22 font-family=%22sans-serif%22>SP</text></svg>">
-    <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
-    <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -43,15 +39,22 @@
         .dark .card-front { background-color: #374151; }
         .card-back { background-color: #f9fafb; color: #111827; transform: rotateY(180deg); }
         .dark .card-back { background-color: #1f2937; color: #f9fafb; }
+        
+        /* Class for selected dropdown item */
+        .deck-option.selected {
+            background-color: #dbeafe; /* blue-100 */
+            font-weight: 600;
+        }
+        .dark .deck-option.selected {
+            background-color: #2563eb; /* blue-600 */
+        }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
 
-    <!-- App Container -->
     <div class="w-full min-h-screen p-4 md:p-8">
 
-        <!-- Lobby View: Create/Join Room -->
-        <div id="lobby-view" class="w-full max-w-md mx-auto mt-20 text-center">
+        <div id="lobby-view" class="w-full max-w-md mx-auto mt-20 text-center hidden">
             <h1 class="text-4xl font-bold mb-2">Scrum Poker</h1>
             <p class="text-gray-500 dark:text-gray-400 mb-8">Real-time Story Pointing</p>
             <div id="lobby-controls" class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg">
@@ -64,24 +67,37 @@
             </div>
         </div>
         
-        <!-- Name Entry Modal -->
-        <div id="name-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
-             <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-sm text-center">
-                <h2 class="text-2xl font-bold mb-4">Enter Your Name</h2>
-                <input type="text" id="name-input" placeholder="Your Name" class="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                <button id="submit-name-btn" class="w-full px-6 py-3 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700">Enter Room</button>
-            </div>
-        </div>
-
-        <!-- Game View -->
         <div id="game-view" class="hidden">
             <header class="flex flex-wrap justify-between items-center mb-6">
                 <div>
                     <h1 class="text-3xl font-bold">Scrum Poker</h1>
                     <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Room ID: <strong id="room-id-display" class="select-all cursor-pointer" title="Click to copy Room ID"></strong> <i id="copy-icon" class="fa-regular fa-copy ml-1 cursor-pointer"></i></div>
                 </div>
-                 <div id="close-room-container" class="hidden items-center gap-2 mt-4 md:mt-0">
-                    <button id="close-room-btn" class="px-5 py-2 bg-red-600 text-white font-bold rounded-lg shadow-md hover:bg-red-700"><i class="fa-solid fa-times-circle mr-2"></i>Close Room</button>
+                
+                <div class="flex items-center gap-4 mt-4 md:mt-0">
+                
+                    <div id="timer-display" class="text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-200 dark:bg-gray-700/50 px-3 py-2 rounded-lg">
+                        <i class="fa-solid fa-clock"></i> --:--:--
+                    </div>
+
+                    <div id="room-settings" class="hidden relative">
+                        <div>
+                            <button type="button" id="deck-select-button" class="flex items-center justify-between w-full rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 dark:focus:ring-offset-gray-900 focus:ring-blue-500">
+                                <span id="deck-select-label">Fibonacci (0, 0.5, 1...)</span>
+                                <i class="fa-solid fa-chevron-down ml-2 -mr-1 h-5 w-5 text-gray-400" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <div id="deck-select-menu" class="hidden absolute left-0 z-10 mt-2 w-56 origin-top-left rounded-md shadow-lg bg-white dark:bg-gray-700 ring-1 ring-black ring-opacity-5 focus:outline-none">
+                            <div class="py-1" role="none">
+                                <a href="#" class="deck-option block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600" data-value="fibonacci" role="menuitem">Fibonacci (0, 0.5, 1...)</a>
+                                <a href="#" class="deck-option block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600" data-value="tshirt" role="menuitem">T-Shirt (XS, S, M...)</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="close-room-container" class="hidden items-center gap-2">
+                        <button id="close-room-btn" class="px-5 py-2 bg-red-600 text-white font-bold rounded-lg shadow-md hover:bg-red-700"><i class="fa-solid fa-times-circle mr-2"></i>Close Room</button>
+                    </div>
                 </div>
             </header>
             
@@ -91,6 +107,10 @@
             </div>
 
             <main class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md max-w-4xl mx-auto">
+                
+                <div id="stats-bar" class="hidden mb-4 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                    </div>
+
                 <div id="host-controls" class="hidden flex items-center justify-between mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
                      <button id="remove-all-btn" class="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-600 text-sm whitespace-nowrap hidden"><i class="fa-solid fa-user-minus mr-2"></i>Remove All</button>
                      <button id="reset-btn" class="px-4 py-2 bg-gray-500 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600 text-sm whitespace-nowrap">Delete Estimates</button>
@@ -105,7 +125,14 @@
         </div>
     </div>
     
-    <!-- Confirmation Modal -->
+    <div id="name-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+         <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-sm text-center">
+            <h2 class="text-2xl font-bold mb-4">Enter Your Name</h2>
+            <input type="text" id="name-input" placeholder="Your Name" class="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+            <button id="submit-name-btn" class="w-full px-6 py-3 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700">Enter Room</button>
+        </div>
+    </div>
+
     <div id="confirm-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
         <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-sm text-center">
            <h2 id="confirm-title" class="text-2xl font-bold mb-4">Are you sure?</h2>
@@ -116,9 +143,26 @@
            </div>
        </div>
    </div>
+   
+    <div id="extension-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-sm text-center">
+           <h2 class="text-2xl font-bold mb-4">Session Expired</h2>
+           <p class="text-gray-600 dark:text-gray-400 mb-6">Would you like to extend the session for 10 more minutes?</p>
+           <div class="flex justify-center gap-4">
+               <button id="close-now-btn" class="px-6 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600">Close Room</button>
+               <button id="extend-btn" class="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700">Extend 10 Mins</button>
+           </div>
+       </div>
+   </div>
+   
+    <div id="expired-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-sm text-center">
+           <h2 class="text-2xl font-bold mb-4">Session Expired</h2>
+           <p class="text-gray-600 dark:text-gray-400 mb-6">Waiting for the host to extend the session...</p>
+       </div>
+   </div>
 
 
-    <!-- Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -129,7 +173,16 @@
             let db, auth, currentUser, currentRoomId, isHost = false;
             let roomUnsubscribe = null;
             let participantsUnsubscribe = null;
-            let currentConfirmAction = null;
+            let currentConfirmAction = null; 
+            let timerInterval = null; 
+
+            // *** Deck Definitions ***
+            const DECK_FIBONACCI_VALS = ['?', '☕', '0', '0.5', '1', '2', '3', '5', '8', '13', '20', '40', '100'];
+            const DECK_TSHIRT_VALS = ['?', '☕', 'XS', 'S', 'M', 'L', 'XL', 'XXL'];
+            const DECKS = {
+                'fibonacci': { label: 'Fibonacci (0, 0.5, 1...)', values: DECK_FIBONACCI_VALS },
+                'tshirt': { label: 'T-Shirt (XS, S, M...)', values: DECK_TSHIRT_VALS }
+            };
 
             // --- DOM Elements ---
             const lobbyView = document.getElementById('lobby-view');
@@ -140,6 +193,18 @@
             const revealBtn = document.getElementById('reveal-btn');
             const hostControls = document.getElementById('host-controls');
             const closeRoomContainer = document.getElementById('close-room-container');
+            const statsBar = document.getElementById('stats-bar');
+            const roomSettings = document.getElementById('room-settings'); 
+            
+            // *** Custom Dropdown Elements ***
+            const deckSelectButton = document.getElementById('deck-select-button');
+            const deckSelectMenu = document.getElementById('deck-select-menu');
+            const deckSelectLabel = document.getElementById('deck-select-label');
+            
+            // *** Timer Elements ***
+            const timerDisplay = document.getElementById('timer-display');
+            const extensionModal = document.getElementById('extension-modal');
+            const expiredModal = document.getElementById('expired-modal');
 
             /** Shows a non-blocking UI notification. */
             function showNotification(message, isError = false) {
@@ -163,72 +228,263 @@
             }
             
             // --- UI Update Functions ---
-            function renderVotingDeck() {
-                const cardValues = ['?', '☕', '0', '0.5', '1', '2', '3', '5', '8', '13', '20', '40', '100'];
+
+            /**
+             * Renders the voting deck based on the selected type
+             */
+            function renderVotingDeck(deckType = 'fibonacci') {
+                const cardValues = (DECKS[deckType] || DECKS['fibonacci']).values; // Default to fibonacci
                 const container = document.getElementById('cards-container');
                 container.innerHTML = cardValues.map(value => 
                     `<button data-value="${value}" class="vote-card bg-white dark:bg-gray-700 rounded-lg shadow-md flex items-center justify-center text-2xl font-bold border-2 border-transparent">${value}</button>`
                 ).join('');
             }
 
+            /**
+             * Renders the participant list AND the statistics bar
+             */
             function renderParticipants(participants, votesRevealed) {
                 const container = document.getElementById('participants-container');
                 container.innerHTML = '';
                 const sortedParticipants = Object.entries(participants).sort(([, a], [, b]) => a.name.localeCompare(b.name));
 
+                // --- Render Participant Rows ---
                 sortedParticipants.forEach(([id, data], index) => {
                     const isMe = id === currentUser?.uid;
                     const participantEl = document.createElement('div');
                     const bgColor = index % 2 === 0 ? 'bg-slate-50 dark:bg-gray-700/50' : 'bg-white dark:bg-gray-800';
                     participantEl.className = `flex items-center justify-between py-1 px-3 rounded-lg ${bgColor}`;
+                    
                     participantEl.innerHTML = `
-                        <span class="font-semibold break-all flex-grow pr-4 ${isMe ? 'text-blue-500' : ''}">${data.name}</span>
-                        <div class="relative flex-shrink-0 flex items-center justify-center" style="height: 54px; width: 36px;">
-                            <div class="participant-vote-card-wrapper ${votesRevealed ? 'is-flipped' : ''}">
-                                <div class="card-face card-front"><i class="fa-solid ${data.hasVoted ? 'fa-check text-green-400' : 'fa-hourglass-half'} text-xl"></i></div>
-                                <div class="card-face card-back text-xl font-bold">${data.vote || '-'}</div>
+                        <div class="flex items-center gap-3"> 
+                            <button data-id="${id}" title="Remove ${data.name}" class="remove-participant-btn text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors rounded-full w-6 h-6 flex items-center justify-center">
+                                <i class="fa-solid fa-times text-xl"></i>
+                            </button>
+                            <span class="font-semibold break-all pr-4 ${isMe ? 'text-blue-500' : ''}">${data.name}</span>
+                        </div>
+                        <div class="flex-shrink-0 flex items-center"> 
+                            <div class="relative flex items-center justify-center" style="height: 54px; width: 36px;">
+                                <div class="participant-vote-card-wrapper ${votesRevealed ? 'is-flipped' : ''}">
+                                    <div class="card-face card-front"><i class="fa-solid ${data.hasVoted ? 'fa-check text-green-400' : 'fa-hourglass-half'} text-xl"></i></div>
+                                    <div class="card-face card-back text-xl font-bold">${data.vote || '-'}</div>
+                                </div>
                             </div>
                         </div>
                     `;
                     container.appendChild(participantEl);
                 });
+
+                // --- Calculate and Render Statistics Bar ---
+                if (votesRevealed) {
+                    const allVotes = Object.values(participants)
+                        .map(p => p.vote)
+                        .filter(v => v !== null && v !== undefined); // Get all valid votes
+
+                    let leastCommonStr = "N/A";
+                    let mostCommonStr = "N/A";
+
+                    if (allVotes.length > 0) {
+                        const counts = {};
+                        let maxFreq = 0;
+                        let minFreq = allVotes.length; // Start with max possible frequency
+
+                        allVotes.forEach(v => {
+                            counts[v] = (counts[v] || 0) + 1;
+                        });
+
+                        Object.values(counts).forEach(freq => {
+                            if (freq > maxFreq) maxFreq = freq;
+                            if (freq < minFreq) minFreq = freq;
+                        });
+                        
+                        const mostCommonModes = Object.keys(counts)
+                            .filter(k => counts[k] === maxFreq);
+                        
+                        const leastCommonModes = Object.keys(counts)
+                            .filter(k => counts[k] === minFreq);
+
+                        // Logic for "Most Common"
+                        if (maxFreq > 1) { 
+                            mostCommonStr = mostCommonModes.join(', '); // "5", or "5, ?"
+                        } else if (allVotes.length > 1) {
+                            mostCommonStr = "No consensus"; // e.g., 3, 5, 8
+                        } else if (allVotes.length === 1) {
+                            mostCommonStr = allVotes[0]; // e.g. only one vote, "5" or "?"
+                        }
+
+                        // Logic for "Least Common"
+                        if (allVotes.length > 1 && leastCommonModes.length === allVotes.length) {
+                             // This means all votes are unique (e.g., 3, 5, 8)
+                            leastCommonStr = "All unique";
+                        } else if (allVotes.length > 1 && minFreq === maxFreq) {
+                            // This means all votes are the same (e.g., 5, 5, 5)
+                            leastCommonStr = "N/A"; // No "least common" if all are the same
+                        } else {
+                            leastCommonStr = leastCommonModes.join(', ');
+                        }
+
+                    } else {
+                        mostCommonStr = "No votes cast";
+                    }
+
+                    // Render the HTML
+                    statsBar.innerHTML = `
+                        <div class="flex flex-wrap justify-around text-center gap-4">
+                            <div>
+                                <span class="block text-sm text-gray-500 dark:text-gray-400">Least Common</span>
+                                <span class="block text-2xl font-bold">${leastCommonStr}</span>
+                            </div>
+                            <div>
+                                <span class="block text-sm text-gray-500 dark:text-gray-400">Most Common</span>
+                                <span class="block text-2xl font-bold">${mostCommonStr}</span>
+                            </div>
+                        </div>
+                    `;
+                    statsBar.classList.remove('hidden');
+                } else {
+                    statsBar.innerHTML = '';
+                    statsBar.classList.add('hidden');
+                }
             }
 
+            /** Switches between the two main views: 'lobby-view' and 'game-view' */
             function switchView(view) {
                 lobbyView.classList.add('hidden');
                 gameView.classList.add('hidden');
-                nameModal.classList.add('hidden');
                 document.getElementById(view).classList.remove('hidden');
             }
 
+            /** Shows the name entry modal */
+            function showNameModal() {
+                document.getElementById('name-input').value = ''; // Clear name input
+                nameModal.classList.remove('hidden');
+            }
+
+            /** Hides the name entry modal */
+            function hideNameModal() {
+                nameModal.classList.add('hidden');
+            }
+            
+            // --- Timer Functions ---
+            
+            /** Handles showing the correct modal when session expires */
+            function handleSessionExpired() {
+                if (isHost) {
+                    extensionModal.classList.remove('hidden');
+                } else {
+                    expiredModal.classList.remove('hidden');
+                }
+            }
+            
+            /** Starts the global countdown timer */
+            function startTimer(expiresAtString) {
+                if (timerInterval) clearInterval(timerInterval); // Clear existing timer
+                
+                const expiryTime = new Date(expiresAtString).getTime();
+                
+                timerInterval = setInterval(() => {
+                    const now = Date.now();
+                    const remaining = expiryTime - now;
+
+                    if (remaining <= 0) {
+                        clearInterval(timerInterval);
+                        timerDisplay.innerHTML = `<i class="fa-solid fa-clock"></i> 00:00:00`;
+                        handleSessionExpired();
+                        return;
+                    }
+
+                    const hours = Math.floor((remaining / (1000 * 60 * 60)) % 24);
+                    const minutes = Math.floor((remaining / 1000 / 60) % 60);
+                    const seconds = Math.floor((remaining / 1000) % 60);
+                    
+                    timerDisplay.innerHTML = `<i class="fa-solid fa-clock"></i> ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+                }, 1000);
+            }
+
             // --- Firestore Logic ---
-            const getRoomRef = () => doc(db, `scrum-poker-rooms/${currentRoomId}`);
-            const getParticipantsRef = () => collection(db, `scrum-poker-rooms/${currentRoomId}/participants`);
+            const getRoomRef = (roomId) => doc(db, `scrum-poker-rooms/${roomId}`);
+            const getParticipantsRef = (roomId) => collection(db, `scrum-poker-rooms/${roomId}/participants`);
 
             async function handleCreateRoom() {
                 if (!currentUser) return;
                 isHost = true;
                 currentRoomId = Math.random().toString(36).substring(2, 8).toUpperCase();
-                await setDoc(getRoomRef(), { hostId: currentUser.uid, votesRevealed: false });
-                switchView('name-modal');
+                
+                // Set expiration 2 hours from now
+                const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+                
+                await setDoc(getRoomRef(currentRoomId), { 
+                    hostId: currentUser.uid, 
+                    votesRevealed: false,
+                    createdAt: new Date().toISOString(),
+                    deckType: 'fibonacci', 
+                    expiresAt: expiresAt
+                });
+                
+                switchView('game-view');
+                roomIdDisplay.textContent = currentRoomId;
+                showNameModal();
             }
 
-            async function handleJoinRoom(roomId) {
-                if (!currentUser || !roomId) return;
-                currentRoomId = roomId;
-                const roomSnap = await getDoc(getRoomRef());
+            /** Deletes a room and all its participants */
+            const deleteRoom = async (roomIdToDelete) => {
+                if (!roomIdToDelete) return; 
+                const batch = writeBatch(db);
+                const participantsSnap = await getDocs(query(getParticipantsRef(roomIdToDelete)));
+                participantsSnap.forEach(p => batch.delete(p.ref));
+                batch.delete(getRoomRef(roomIdToDelete));
+                await batch.commit();
+            };
+
+            /** Core function to join a room and show the name modal */
+            async function joinRoomFlow(roomId) {
+                if (!currentUser || !roomId) return false;
+                
+                const roomDoc = getRoomRef(roomId);
+                const roomSnap = await getDoc(roomDoc);
+                
                 if (!roomSnap.exists()) {
-                    currentRoomId = null;
-                    return showNotification("Room not found!", true);
+                    showNotification("Room not found!", true);
+                    return false;
                 }
-                isHost = roomSnap.data().hostId === currentUser.uid;
-                switchView('name-modal');
+
+                const roomData = roomSnap.data();
+                const expiryTime = new Date(roomData.expiresAt).getTime();
+                
+                // Auto-cleanup for abandoned rooms (24h+ expired)
+                if (Date.now() > expiryTime + (24 * 60 * 60 * 1000)) {
+                    await deleteRoom(roomId);
+                    showNotification("Room not found.", true);
+                    return false;
+                }
+
+                // Check for expired rooms
+                if (Date.now() > expiryTime && roomData.hostId !== currentUser.uid) {
+                    // Non-host joining an expired room. Deny entry.
+                    showNotification("This room has expired.", true);
+                    return false;
+                }
+
+                // If host, or room is not expired, let them in.
+                currentRoomId = roomId;
+                isHost = roomData.hostId === currentUser.uid;
+                switchView('game-view');
+                roomIdDisplay.textContent = currentRoomId;
+                showNameModal();
+                return true;
             }
 
+            /** Final step, runs after user submits their name (or on reload) */
             async function handleEnterRoom(name) {
-                if (!name) return showNotification("Please enter a name.", true);
-                localStorage.setItem('scrumPokerUser', JSON.stringify({ uid: currentUser.uid, name: name }));
-                await setDoc(doc(getParticipantsRef(), currentUser.uid), { name, vote: null, hasVoted: false }, { merge: true });
+                if (!name) {
+                    showNameModal();
+                    return;
+                }
+                
+                sessionStorage.setItem('scrumPokerUser', JSON.stringify({ uid: currentUser.uid, name: name, roomId: currentRoomId }));
+                
+                await setDoc(doc(getParticipantsRef(currentRoomId), currentUser.uid), { name, vote: null, hasVoted: false }, { merge: true });
                 
                 try {
                     const url = new URL(window.location.href);
@@ -236,53 +492,82 @@
                     window.history.replaceState({ roomId: currentRoomId }, '', url.toString());
                 } catch(e) { console.warn("Could not update URL."); }
                 
-                roomIdDisplay.textContent = currentRoomId;
-                
-                // Show/hide controls based on host status
                 hostControls.classList.remove('hidden');
                 document.getElementById('remove-all-btn').classList.toggle('hidden', !isHost);
                 closeRoomContainer.classList.toggle('hidden', !isHost);
 
-                switchView('game-view');
+                hideNameModal();
 
+                // Start the Firebase listeners
                 if (roomUnsubscribe) roomUnsubscribe();
-                roomUnsubscribe = onSnapshot(getRoomRef(), (roomDoc) => {
+                roomUnsubscribe = onSnapshot(getRoomRef(currentRoomId), (roomDoc) => {
                     if (!roomDoc.exists()) {
                         handleCleanup("The room was closed by the host.");
                     } else {
                         const roomData = roomDoc.data();
+                        const deckType = roomData.deckType || 'fibonacci';
+                        
+                        // Start the timer
+                        if (roomData.expiresAt) {
+                            startTimer(roomData.expiresAt);
+                        }
+                        
+                        // Hide expiration modals if session is un-expired
+                        if (new Date(roomData.expiresAt).getTime() > Date.now()) {
+                            extensionModal.classList.add('hidden');
+                            expiredModal.classList.add('hidden');
+                        }
+
                         revealBtn.textContent = roomData.votesRevealed ? 'Hide' : 'Show';
+                        
+                        roomSettings.classList.toggle('hidden', !isHost);
+                        deckSelectLabel.textContent = (DECKS[deckType] || DECKS['fibonacci']).label;
+                        
+                        document.querySelectorAll('.deck-option').forEach(opt => {
+                            opt.classList.remove('selected');
+                            if (opt.dataset.value === deckType) {
+                                opt.classList.add('selected');
+                            }
+                        });
+                        
+                        renderVotingDeck(deckType);
+                        
                         if (participantsUnsubscribe) participantsUnsubscribe();
-                        participantsUnsubscribe = onSnapshot(query(getParticipantsRef()), (pSnap) => {
+                        participantsUnsubscribe = onSnapshot(query(getParticipantsRef(currentRoomId)), (pSnap) => {
                             const participants = {};
                             pSnap.forEach(p => participants[p.id] = p.data());
+                            
                             renderParticipants(participants, roomData.votesRevealed);
+
+                            const myData = participants[currentUser.uid];
+                            if (myData && !myData.hasVoted) {
+                                document.querySelectorAll('#cards-container .vote-card.selected').forEach(c => c.classList.remove('selected'));
+                            }
                         });
                     }
                 });
             }
             
             const toggleVotes = async () => {
-                const roomDoc = await getDoc(getRoomRef());
+                const roomDoc = await getDoc(getRoomRef(currentRoomId));
                 const currentStatus = roomDoc.data().votesRevealed;
-                updateDoc(getRoomRef(), { votesRevealed: !currentStatus });
+                updateDoc(getRoomRef(currentRoomId), { votesRevealed: !currentStatus });
             };
 
             const resetRound = async () => {
                 const batch = writeBatch(db);
-                const participantsSnap = await getDocs(query(getParticipantsRef()));
+                const participantsSnap = await getDocs(query(getParticipantsRef(currentRoomId)));
                 participantsSnap.forEach(p => batch.update(p.ref, { vote: null, hasVoted: false }));
-                batch.update(getRoomRef(), { votesRevealed: false });
+                batch.update(getRoomRef(currentRoomId), { votesRevealed: false });
                 await batch.commit();
-                document.querySelectorAll('#cards-container .vote-card.selected').forEach(c => c.classList.remove('selected'));
             };
 
             const removeAllParticipants = async () => {
                 if (!isHost) return showNotification("Only the host can remove participants.", true);
                 const batch = writeBatch(db);
-                const participantsSnap = await getDocs(query(getParticipantsRef()));
+                const participantsSnap = await getDocs(query(getParticipantsRef(currentRoomId)));
                 participantsSnap.forEach(p => {
-                    if (p.id !== currentUser.uid) { // Don't remove the host
+                    if (p.id !== currentUser.uid) { 
                         batch.delete(p.ref);
                     }
                 });
@@ -290,21 +575,41 @@
                 showNotification("All participants have been removed.");
             }
 
-            const deleteRoom = async () => {
-                if (!isHost) return;
-                const batch = writeBatch(db);
-                const participantsSnap = await getDocs(query(getParticipantsRef()));
-                participantsSnap.forEach(p => batch.delete(p.ref));
-                batch.delete(getRoomRef());
-                await batch.commit();
+            const removeParticipant = async (participantId, name) => {
+                if (!participantId || !currentRoomId) return;
+                try {
+                    if (participantId === currentUser.uid) {
+                        await deleteDoc(doc(getParticipantsRef(currentRoomId), participantId));
+                        handleCleanup("You have left the room.");
+                    } else {
+                        await deleteDoc(doc(getParticipantsRef(currentRoomId), participantId));
+                        showNotification(`${name} has been removed.`);
+                    }
+                } catch (error) {
+                    console.error("Error removing participant:", error);
+                    showNotification("Failed to remove participant.", true);
+                }
             };
-
+            
+            /** Resets all app state and returns to lobby */
             function handleCleanup(message) {
                 if (roomUnsubscribe) roomUnsubscribe();
                 if (participantsUnsubscribe) participantsUnsubscribe();
-                localStorage.removeItem('scrumPokerUser');
+                if (timerInterval) clearInterval(timerInterval); 
+                
+                sessionStorage.removeItem('scrumPokerUser');
+                
                 currentRoomId = null;
+                isHost = false;
+                roomUnsubscribe = null;
+                participantsUnsubscribe = null;
+                timerInterval = null;
+
                 switchView('lobby-view');
+                hideNameModal(); 
+                extensionModal.classList.add('hidden');
+                expiredModal.classList.add('hidden');
+                
                 try { window.history.replaceState({}, '', window.location.pathname); } catch(e) {}
                 if (message) showNotification(message);
             }
@@ -328,23 +633,30 @@
                 document.body.removeChild(textArea);
             }
 
-            function showConfirmation(action) {
+            function showConfirmation(action, data = {}) {
                 if (action === 'close' || action === 'removeAll') {
                      if (!isHost) return showNotification(`Only the host can perform this action.`, true);
                 }
                 
-                currentConfirmAction = action;
                 const title = document.getElementById('confirm-title');
                 const text = document.getElementById('confirm-text');
+
                 if (action === 'reset') {
                     title.textContent = 'Delete Estimates?';
                     text.textContent = 'This will clear all current votes and start a new round. This cannot be undone.';
+                    currentConfirmAction = { type: 'reset' };
                 } else if (action === 'close') {
                      title.textContent = 'Close Room?';
                     text.textContent = 'This will end the session for everyone and delete all room data. This cannot be undone.';
+                    currentConfirmAction = { type: 'close' };
                 } else if (action === 'removeAll') {
                     title.textContent = 'Remove All Participants?';
                     text.textContent = 'This will remove everyone from the room except for you (the host).';
+                    currentConfirmAction = { type: 'removeAll' };
+                } else if (action === 'removeParticipant') {
+                    title.textContent = `Remove ${data.name}?`;
+                    text.textContent = `Are you sure you want to remove ${data.name} from the room?`;
+                    currentConfirmAction = { type: 'removeParticipant', data: data };
                 }
                 confirmModal.classList.remove('hidden');
             }
@@ -352,62 +664,174 @@
             // --- Event Listeners ---
             function setupEventListeners() {
                 document.getElementById('create-room-btn').addEventListener('click', handleCreateRoom);
-                document.getElementById('join-room-btn').addEventListener('click', () => handleJoinRoom(document.getElementById('join-room-input').value.trim().toUpperCase()));
+                document.getElementById('join-room-btn').addEventListener('click', () => joinRoomFlow(document.getElementById('join-room-input').value.trim().toUpperCase()));
+                
+                // Name Modal Listeners
                 document.getElementById('submit-name-btn').addEventListener('click', () => handleEnterRoom(document.getElementById('name-input').value.trim()));
                 document.getElementById('name-input').addEventListener('keyup', (e) => e.key === 'Enter' && handleEnterRoom(document.getElementById('name-input').value.trim()));
+                
+                // Click outside modal to cancel
+                nameModal.addEventListener('click', (e) => {
+                    if (e.target === nameModal) {
+                        handleCleanup(null); // Go back to lobby
+                    }
+                });
+
+                // Game View Listeners
                 document.getElementById('copy-icon').addEventListener('click', copyRoomIdToClipboard);
                 document.getElementById('cards-container').addEventListener('click', (e) => {
                     if (e.target.matches('.vote-card') && currentUser) {
                         const value = e.target.dataset.value;
-                        updateDoc(doc(getParticipantsRef(), currentUser.uid), { vote: value, hasVoted: true });
+                        updateDoc(doc(getParticipantsRef(currentRoomId), currentUser.uid), { vote: value, hasVoted: true });
                         document.querySelectorAll('#cards-container .vote-card').forEach(c => c.classList.remove('selected'));
                         e.target.classList.add('selected');
                     }
                 });
+                document.getElementById('participants-container').addEventListener('click', (e) => {
+                    const removeBtn = e.target.closest('.remove-participant-btn');
+                    if (removeBtn) {
+                        const participantId = removeBtn.dataset.id;
+                        const participantName = removeBtn.title.replace('Remove ', ''); 
+                        showConfirmation('removeParticipant', { id: participantId, name: participantName });
+                    }
+                });
+
                 // Host Controls
                 revealBtn.addEventListener('click', toggleVotes);
                 document.getElementById('reset-btn').addEventListener('click', () => showConfirmation('reset'));
                 document.getElementById('remove-all-btn').addEventListener('click', () => showConfirmation('removeAll'));
                 document.getElementById('close-room-btn').addEventListener('click', () => showConfirmation('close'));
 
+                // Custom Dropdown Listeners
+                deckSelectButton.addEventListener('click', () => {
+                    deckSelectMenu.classList.toggle('hidden');
+                });
+                window.addEventListener('click', (e) => {
+                    if (e.target !== deckSelectButton && !deckSelectButton.contains(e.target) && !deckSelectMenu.contains(e.target)) {
+                        deckSelectMenu.classList.add('hidden');
+                    }
+                });
+                deckSelectMenu.addEventListener('click', (e) => {
+                    e.preventDefault(); 
+                    const target = e.target.closest('.deck-option');
+                    if (target) {
+                        const newValue = target.dataset.value;
+                        if (isHost && currentRoomId) {
+                            updateDoc(getRoomRef(currentRoomId), { deckType: newValue });
+                        }
+                        deckSelectMenu.classList.add('hidden');
+                    }
+                });
+
                 // Confirmation Modal
-                document.getElementById('cancel-btn').addEventListener('click', () => confirmModal.classList.add('hidden'));
-                document.getElementById('confirm-btn').addEventListener('click', () => {
-                    if (currentConfirmAction === 'reset') resetRound();
-                    else if (currentConfirmAction === 'close') deleteRoom();
-                    else if (currentConfirmAction === 'removeAll') removeAllParticipants();
+                document.getElementById('cancel-btn').addEventListener('click', () => {
                     confirmModal.classList.add('hidden');
+                    currentConfirmAction = null;
+                });
+                document.getElementById('confirm-btn').addEventListener('click', () => {
+                    if (!currentConfirmAction) return;
+                    const { type, data } = currentConfirmAction;
+
+                    if (type === 'reset') resetRound();
+                    // *** BUG FIX: Removed handleCleanup call from here ***
+                    else if (type === 'close') deleteRoom(currentRoomId); 
+                    else if (type === 'removeAll') removeAllParticipants();
+                    else if (type === 'removeParticipant') removeParticipant(data.id, data.name);
+                    
+                    confirmModal.classList.add('hidden');
+                    currentConfirmAction = null;
+                });
+                
+                // Expiration Modal Listeners
+                document.getElementById('extend-btn').addEventListener('click', async () => {
+                    const newExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+                    await updateDoc(getRoomRef(currentRoomId), { expiresAt: newExpiry });
+                    extensionModal.classList.add('hidden');
+                });
+                document.getElementById('close-now-btn').addEventListener('click', () => {
+                    // *** BUG FIX: Removed handleCleanup call from here ***
+                    deleteRoom(currentRoomId);
+                    extensionModal.classList.add('hidden');
                 });
             }
             
+            /** App entry point */
             async function start() {
                 try {
                     const firebaseConfig = { apiKey: "AIzaSyBxCu-lCHYpt8_LCl2eVscCLJA0cXLbq3A", authDomain: "scrum-poker-app-2b25a.firebaseapp.com", projectId: "scrum-poker-app-2b25a", storageBucket: "scrum-poker-app-2b25a.appspot.com", messagingSenderId: "404252644304", appId: "1:404252644304:web:69790c09be6b5dc39d5fd5" };
                     const app = initializeApp(firebaseConfig);
                     auth = getAuth(app);
                     db = getFirestore(app);
-                    renderVotingDeck();
+                    
+                    renderVotingDeck('fibonacci'); 
                     setupEventListeners();
+                    
                     const userCredential = await signInAnonymously(auth);
                     currentUser = userCredential.user;
+    
                     const urlParams = new URLSearchParams(window.location.search);
                     const roomIdFromUrl = urlParams.get('room');
-                    const savedUser = JSON.parse(localStorage.getItem('scrumPokerUser'));
-                    if (roomIdFromUrl && savedUser && savedUser.uid === currentUser.uid) {
-                        currentRoomId = roomIdFromUrl.toUpperCase();
-                        const roomSnap = await getDoc(getRoomRef());
-                        if (roomSnap.exists()) {
-                            isHost = roomSnap.data().hostId === currentUser.uid;
-                            await handleEnterRoom(savedUser.name);
-                        } else {
-                            handleCleanup("The room you were in has been closed.");
-                        }
-                    } else if (roomIdFromUrl) {
-                        await handleJoinRoom(roomIdFromUrl.toUpperCase());
+                    
+                    let savedUser = JSON.parse(sessionStorage.getItem('scrumPokerUser'));
+
+                    if (savedUser && (!savedUser.uid || !savedUser.name || !savedUser.roomId)) {
+                        sessionStorage.removeItem('scrumPokerUser');
+                        savedUser = null;
                     }
+
+                    if (roomIdFromUrl) {
+                        if (savedUser && savedUser.uid === currentUser.uid && savedUser.roomId.toUpperCase() === roomIdFromUrl.toUpperCase()) {
+                            // This is a PAGE RELOAD
+                            currentRoomId = roomIdFromUrl.toUpperCase();
+                            const roomSnap = await getDoc(getRoomRef(currentRoomId));
+                            if (!roomSnap.exists()) {
+                                handleCleanup("This room is no longer active.");
+                                return;
+                            }
+                            
+                            // Check for expiration on reload
+                            const roomData = roomSnap.data();
+                            const expiryTime = new Date(roomData.expiresAt).getTime();
+                            if (Date.now() > expiryTime && roomData.hostId !== currentUser.uid) {
+                                handleCleanup("This session has expired.");
+                                return;
+                            }
+                            
+                            isHost = roomData.hostId === currentUser.uid;
+                            switchView('game-view');
+                            roomIdDisplay.textContent = currentRoomId;
+                            await handleEnterRoom(savedUser.name);
+
+                        } else {
+                            // This is a NEW USER JOINING
+                            sessionStorage.removeItem('scrumPokerUser'); 
+                            const success = await joinRoomFlow(roomIdFromUrl.toUpperCase());
+                            if (!success) {
+                                switchView('lobby-view'); 
+                            }
+                        }
+                    } else {
+                        // No room link, show lobby
+                        sessionStorage.removeItem('scrumPokerUser'); 
+                        switchView('lobby-view');
+                    }
+    
                 } catch (error) {
+                    // Show error in the lobby view
                     console.error("Application Startup Error:", error);
-                    document.getElementById('lobby-controls').innerHTML = `<p class="text-red-500 p-4 bg-red-100 rounded-lg">Error: ${error.message}</p>`;
+                    const lobbyControls = document.getElementById('lobby-controls');
+                    const lobbyView = document.getElementById('lobby-view');
+
+                    if (lobbyView) {
+                        lobbyView.classList.remove('hidden');
+                    }
+                    
+                    if (lobbyControls) {
+                        lobbyControls.innerHTML = `<p class="text-red-500 p-4 bg-red-100 dark:bg-red-900/50 dark:text-red-300 rounded-lg"><strong>Error:</strong> ${error.message}</p>`;
+                    } else {
+                        // Fallback if lobby controls aren't even there
+                        document.body.innerHTML = `<p class="text-red-500 p-8">Application Error: ${error.message}</p>`;
+                    }
                 }
             }
             start();
